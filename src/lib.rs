@@ -1,6 +1,6 @@
 //! Rust version of the `Twitter snowflake algorithm` .
-//!
 
+use chrono::{NaiveDateTime, TimeZone, Utc};
 use std::hint::spin_loop;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -148,6 +148,26 @@ impl SnowflakeIdGenerator {
             | (self.idx as i64)
     }
 
+    pub fn generate_from_ms(&mut self, ts: u64, ms: u32) -> i64 {
+        self.idx = (self.idx + 1) % 4096;
+
+        let dt = NaiveDateTime::from_timestamp(ts as i64, ms);
+        let ts: SystemTime = Utc.from_utc_datetime(&dt).into();
+
+        let now_millis = ts
+            .duration_since(self.epoch)
+            .expect("Time went mackward")
+            .as_millis() as i64;
+
+        //last_time_millis is 64 bits，left shift 22 bit，store 42 bits ， machine_id left shift 17 bits，
+        //node_id left shift 12 bits ,idx complementing bits.
+
+        now_millis << 22
+            | ((self.machine_id << 17) as i64)
+            | ((self.node_id << 12) as i64)
+            | (self.idx as i64)
+    }
+
     /// The lazy generate.
     ///
     /// Lazy generate.
@@ -259,6 +279,13 @@ impl SnowflakeIdBucket {
 #[inline(always)]
 /// Get the latest milliseconds of the clock.
 pub fn get_time_millis(epoch: SystemTime) -> i64 {
+    SystemTime::now()
+        .duration_since(epoch)
+        .expect("Time went mackward")
+        .as_millis() as i64
+}
+
+pub fn get_time_millis2(epoch: SystemTime) -> i64 {
     SystemTime::now()
         .duration_since(epoch)
         .expect("Time went mackward")

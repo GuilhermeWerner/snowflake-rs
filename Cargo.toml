@@ -18,3 +18,4 @@ license = "MIT"
 name = "snowflake"
 
 [dependencies]
+chrono = "0.4"
